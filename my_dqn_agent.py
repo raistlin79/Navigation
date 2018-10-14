@@ -89,10 +89,10 @@ class Agent():
 
         # Get max predicted Q values (for next states) from target model
         # TODO: Using Double DQN
-        Q_actions_next = self.qnetwork_local(next_states).detach().argmax(1).unsqueeze(1)
-        Q_targets_next = self.qnetwork_target(next_states).detach().gather(1, Q_actions_next)
+        # Q_actions_next = self.qnetwork_local(next_states).detach().argmax(1).unsqueeze(1)
+        # Q_targets_next = self.qnetwork_target(next_states).detach().gather(1, Q_actions_next)
 
-        # Q_targets_next = self.qnetwork_target(next_states).detach().max(1)[0].unsqueeze(1)
+        Q_targets_next = self.qnetwork_target(next_states).detach().max(1)[0].unsqueeze(1)
 
         # Compute Q targets for current states
         Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
