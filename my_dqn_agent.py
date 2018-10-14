@@ -2,7 +2,7 @@ import numpy as np
 import random
 from collections import namedtuple, deque
 
-from model import QNetwork
+from my_model import QNetwork
 
 import torch
 import torch.nn.functional as F
@@ -55,7 +55,7 @@ class Agent():
                 experiences = self.memory.sample()
                 self.learn(experiences, GAMMA)
 
-    def act(self, state, eps=0.):
+    def act(self, state, eps=0.1):
         """Returns actions for given state as per current policy.
 
         Params
@@ -63,7 +63,7 @@ class Agent():
             state (array_like): current state
             eps (float): epsilon, for epsilon-greedy action selection
         """
-        state = torch.from_numpy(state).float().unsqueeze(0).to(device)
+        state = torch.from_numpy(state).float().unsqueeze(0) .to(device)
         self.qnetwork_local.eval()
         with torch.no_grad():
             action_values = self.qnetwork_local(state)
@@ -71,8 +71,10 @@ class Agent():
 
         # Epsilon-greedy action selection
         if random.random() > eps:
-            return np.argmax(action_values.cpu().data.numpy())
+            #print("Calc action: ", np.asscalar(np.argmax(action_values.cpu().data.numpy())))
+            return np.asscalar(np.argmax(action_values.cpu().data.numpy()))
         else:
+            #print("Random action: ", random.choice(np.arange(self.action_size)))
             return random.choice(np.arange(self.action_size))
 
     def learn(self, experiences, gamma):
@@ -86,7 +88,12 @@ class Agent():
         states, actions, rewards, next_states, dones = experiences
 
         # Get max predicted Q values (for next states) from target model
-        Q_targets_next = self.qnetwork_target(next_states).detach().max(1)[0].unsqueeze(1)
+        # TODO: Using Double DQN
+        Q_actions_next = self.qnetwork_local(next_states).detach().argmax(1).unsqueeze(1)
+        Q_targets_next = self.qnetwork_target(next_states).detach().gather(1, Q_actions_next)
+
+        # Q_targets_next = self.qnetwork_target(next_states).detach().max(1)[0].unsqueeze(1)
+
         # Compute Q targets for current states
         Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
 

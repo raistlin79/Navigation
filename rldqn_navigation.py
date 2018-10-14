@@ -1,26 +1,18 @@
 from unityagents import UnityEnvironment
-from my_dqn_agent import agant
+from my_dqn_agent import Agent
 import numpy as np
 import random
 import torch
 
 from collections import deque
 import matplotlib.pyplot as plt
-%matplotlib inline
 
-from agent import Agent
-
-
+device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 env = UnityEnvironment(file_name="Banana_Windows_x86_64/Banana.exe")
-env.seed(0)
-
-print('State shape: ', env.observation_space.shape)
-print('Number of actions: ', env.action_space.n)
 
 """
 Environments contain brains which are responsible for deciding the actions of their associated agents. Here we check for the first brain available, and set it as the default brain we will be controlling from Python.
 """
-
 # get the default brain
 brain_name = env.brain_names[0]
 brain = env.brains[brain_name]
@@ -32,13 +24,14 @@ The simulation contains a single agent that navigates a large environment. At ea
 1 - walk backward
 2 - turn left
 3 - turn right
-The state space has 37 dimensions and contains the agent's velocity, along with ray-based perception of objects around agent's forward direction. A reward of +1 is provided for collecting a yellow banana, and a reward of -1 is provided for collecting a blue banana.
+The state space has 37 dimensions and contains the agent's velocity, along with ray-based perception of objects around agent's forward direction.
+A reward of +1 is provided for collecting a yellow banana, and a reward of -1 is provided for collecting a blue banana.
 
 Run the code cell below to print some information about the environment.
 """
 
 # reset the environment
-env_info = env.reset(train_mode=True)[brain_name]
+env_info = env.reset(train_mode=False)[brain_name]
 
 # number of agents in the environment
 print('Number of agents:', len(env_info.agents))
@@ -53,28 +46,28 @@ print('States look like:', state)
 state_size = len(state)
 print('States have length:', state_size)
 
-#------------------------------------------------------------#
+score = 0
+agent = Agent(state_size, action_size, seed=0, fc1_units=128, fc2_units=64)
 
-
-agent = Agent(state_size, action_size, seed=0)
-
-
-# watch an untrained agent
-state = env.reset()
-img = plt.imshow(env.render(mode='rgb_array'))
-for j in range(200):
-    action = agent.act(state)
-    img.set_data(env.render(mode='rgb_array'))
-    plt.axis('off')
-    display.display(plt.gcf())
-    display.clear_output(wait=True)
-    state, reward, done, _ = env.step(action)
-    if done:
+#-------------------------------------------------------------------------------
+# watch an untrained agent for testing purposes
+env_info = env.reset(train_mode=False)[brain_name]
+score = 0                                          # initialize the score
+while True:
+    action = agent.act(state)                      # select an action
+    env_info = env.step(action)[brain_name]        # send the action to the environment
+    next_state = env_info.vector_observations[0]   # get the next state
+    reward = env_info.rewards[0]                   # get the reward
+    done = env_info.local_done[0]                  # see if episode has finished
+    score += reward                                # update the score
+    state = next_state                             # roll over the state to next time step
+    if done:                                       # exit loop if episode finished
         break
 
+print("Score: {}".format(score))
 env.close()
 
-#---------------------------------------------------------------------------------
+#-------------------------------------------------------------------------------
 
 def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.995):
     """Deep Q-Learning.
@@ -90,15 +83,19 @@ def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99
     scores = []                        # list containing scores from each episode
     scores_window = deque(maxlen=100)  # last 100 scores
     eps = eps_start                    # initialize epsilon
-    for i_episode in range(1, n_episodes+1):
-        state = env.reset()
-        score = 0
+    for i_episode in range(1, n_episodes+1):                        # start episode
+        env_info = env.reset(train_mode=True)[brain_name]           # reset unity environment and learn
+        state = env_info.vector_observations[0]                     # get the current state
+        score = 0                                                   # reset score per episode
         for t in range(max_t):
-            action = agent.act(state, eps)
-            next_state, reward, done, _ = env.step(action)
-            agent.step(state, action, reward, next_state, done)
-            state = next_state
-            score += reward
+            action = agent.act(state, eps)                          # dqn_agent selects an action
+            env_info = env.step(action)[brain_name]                 # send the action to unity environment
+            next_state = env_info.vector_observations[0]            # get the next state from environment
+            reward = env_info.rewards[0]                            # get the reward from environment
+            done = env_info.local_done[0]                           # see if episode has finished
+            agent.step(state, action, reward, next_state, done)     # dqn_agent performs next step
+            state = next_state                                      # set new state
+            score += reward                                         # update score
             if done:
                 break
         scores_window.append(score)       # save most recent score
@@ -107,7 +104,7 @@ def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99
         print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, np.mean(scores_window)), end="")
         if i_episode % 100 == 0:
             print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, np.mean(scores_window)))
-        if np.mean(scores_window)>=200.0:
+        if np.mean(scores_window)>=15.0:
             print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode-100, np.mean(scores_window)))
             torch.save(agent.qnetwork_local.state_dict(), 'checkpoint.pth')
             break
@@ -123,24 +120,23 @@ plt.ylabel('Score')
 plt.xlabel('Episode #')
 plt.show()
 
-#------------------------------------------------------------#
+#-------------------------------------------------------------------------------
+# load the weights from file
+agent.qnetwork_local.load_state_dict(torch.load('checkpoint.pth'))
 
-
-env_info = env.reset(train_mode=True)[brain_name]  # reset the environment
-state = env_info.vector_observations[0]            # get the current state
-score = 0                                          # initialize the score
+env_info = env.reset(train_mode=False)[brain_name]       # reset unity environment and learning prohibited
+state = env_info.vector_observations[0]                  # get the current state from unity environment
+score = 0                                                # initialize score
 while True:
-    action = np.random.randint(action_size)        # select an action
-    env_info = env.step(action)[brain_name]        # send the action to the environment
-    agent.step(self, state, action, reward, next_state, done)
-    next_state = env_info.vector_observations[0]   # get the next state
-    reward = env_info.rewards[0]                   # get the reward
-    done = env_info.local_done[0]                  # see if episode has finished
-    score += reward                                # update the score
-    state = next_state                             # roll over the state to next time step
-
-    if done:                                       # exit loop if episode finished
+    action = agent.act(state)                            # dqn_agent selects an action
+    env_info = env.step(action)[brain_name]              # action is provided to environment
+    next_state = env_info.vector_observations[0]         # environment determines next state
+    reward = env_info.rewards[0]                         # get the reward from environment
+    done = env_info.local_done[0]                        # see if episode has finished
+    score += reward                                      # update the score
+    agent.step(state, action, reward, next_state, done)  # dqn_agent performs steps
+    state = next_state                                   # set new state
+    if done:                                             # exit loop if episode finished
         break
 
 print("Score: {}".format(score))
-env.close()
