@@ -8,38 +8,40 @@ import torch
 import torch.nn.functional as F
 import torch.optim as optim
 
-BUFFER_SIZE = int(1e5)  # replay buffer size
-BATCH_SIZE = 64         # minibatch size
-GAMMA = 0.99            # discount factor
-TAU = 1e-3              # for soft update of target parameters
-LR = 5e-4               # learning rate
-UPDATE_EVERY = 4        # how often to update the network
+BUFFER_SIZE = int(1e5)   # replay buffer size
+BATCH_SIZE = 64          # minibatch size
+GAMMA = 0.99             # discount factor
+TAU = 1e-3               # for soft update of target parameters
+LR = 5e-4                # learning rate
+UPDATE_EVERY = 4         # how often to update the network
+
+SEED = 0
+
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
 class Agent():
     """Interacts with and learns from the environment."""
 
-    def __init__(self, state_size, action_size, seed):
+    def __init__(self, state_size, action_size):
         """Initialize an Agent object.
 
         Params
         ======
             state_size (int): dimension of each state
             action_size (int): dimension of each action
-            seed (int): random seed
         """
         self.state_size = state_size
         self.action_size = action_size
-        self.seed = random.seed(seed)
 
         # Q-Network
-        self.qnetwork_local = QNetwork(state_size, action_size, seed).to(device)
-        self.qnetwork_target = QNetwork(state_size, action_size, seed).to(device)
+        self.qnetwork_local = QNetwork(state_size=self.state_size, action_size=self.action_size, seed=SEED).to(device)
+        self.qnetwork_target = QNetwork(state_size=self.state_size, action_size=self.action_size, seed=SEED).to(device)
         self.optimizer = optim.Adam(self.qnetwork_local.parameters(), lr=LR)
 
         # Replay memory
-        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, seed)
+        self.memory = ReplayBuffer(action_size, BUFFER_SIZE, BATCH_SIZE, SEED)
+
         # Initialize time step (for updating every UPDATE_EVERY steps)
         self.t_step = 0
 
@@ -87,12 +89,10 @@ class Agent():
         """
         states, actions, rewards, next_states, dones = experiences
 
-        # Get max predicted Q values (for next states) from target model
-        # TODO: Using Double DQN
-        # Q_actions_next = self.qnetwork_local(next_states).detach().argmax(1).unsqueeze(1)
-        # Q_targets_next = self.qnetwork_target(next_states).detach().gather(1, Q_actions_next)
+        # Get max predicted Q values (for next states) from target model using Double DQN approach
+        Q_actions_next = self.qnetwork_local(next_states).detach().argmax(1).unsqueeze(1)
+        Q_targets_next = self.qnetwork_target(next_states).detach().gather(1, Q_actions_next)
 
-        Q_targets_next = self.qnetwork_target(next_states).detach().max(1)[0].unsqueeze(1)
 
         # Compute Q targets for current states
         Q_targets = rewards + (gamma * Q_targets_next * (1 - dones))
