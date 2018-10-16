@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# Based on course implementation + Duelling Q Networks
 
 class QNetwork(nn.Module):
     """Actor (Policy) Model. DuelingQNetwork"""
@@ -15,11 +16,13 @@ class QNetwork(nn.Module):
             seed (int): Random seed
         """
         super(QNetwork, self).__init__()
+        # Random seed
         self.seed = torch.manual_seed(seed)
         self.action_size = action_size
 
         # Input layer
         self.fc1 = nn.Linear(state_size, 64)
+
         # create hidden layers according to HIDDEN_SIZES
         self.fc2 = nn.Linear(64, 128)
         self.fc3 = nn.Linear(128, 64)
@@ -34,7 +37,7 @@ class QNetwork(nn.Module):
 
 
     def forward(self, state):
-        """Build a network that maps state -> action values."""
+        """Build a network that maps state -> action values. Forward propagation"""
 
          # classical network with relu activation function
         x = F.relu(self.fc1(state))

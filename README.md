@@ -23,3 +23,5 @@ To execute the code you need to have a prebuild unity environment (0.4.0) instal
 To run and train the agent you can either run DQN_Navigation.ipynb (using jupyter notebook) or python rldqn_navigation.py
 
 The trained network (or better the weights) will be stored in
+
+2018-10-16

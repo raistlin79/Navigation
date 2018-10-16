@@ -19,6 +19,8 @@ SEED = 0                 # Providing seed for Qnetworks and ReplayBuffer
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
+# Implementation from course + Double Q Network 
+
 class Agent():
     """Interacts with and learns from the environment."""
 
@@ -87,6 +89,8 @@ class Agent():
         states, actions, rewards, next_states, dones = experiences
 
         # Get max predicted Q values (for next states) from target model using Double DQN approach
+        # Target Q-value of qnetwork_local is based on the received reward as well as the discounted Q-value of the next state.
+        # This Q-value is derived from the parameters of the target network and the action chosen by the local network.
         Q_actions_next = self.qnetwork_local(next_states).detach().argmax(1).unsqueeze(1)
         Q_targets_next = self.qnetwork_target(next_states).detach().gather(1, Q_actions_next)
 
@@ -120,6 +124,7 @@ class Agent():
         for target_param, local_param in zip(target_model.parameters(), local_model.parameters()):
             target_param.data.copy_(tau*local_param.data + (1.0-tau)*target_param.data)
 
+# Implementation from course
 
 class ReplayBuffer:
     """Fixed-size buffer to store experience tuples."""
