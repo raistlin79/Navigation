@@ -13,8 +13,6 @@ class QNetwork(nn.Module):
             state_size (int): Dimension of each state
             action_size (int): Dimension of each action
             seed (int): Random seed
-            hidden_sizes (int_array): list of sizes of hidden layers
-            dueling_sizes (int_array): list of sizes of hidden layers for dueling streams
         """
         super(QNetwork, self).__init__()
         self.seed = torch.manual_seed(seed)
@@ -37,16 +35,20 @@ class QNetwork(nn.Module):
 
     def forward(self, state):
         """Build a network that maps state -> action values."""
-        adv, val = None, None
+
+         # classical network with relu activation function
         x = F.relu(self.fc1(state))
         x = F.relu(self.fc2(x))
         x = F.relu(self.fc3(x))
 
+         # duelling strams adv and val
+        adv, val = None, None
         adv = F.relu(self.adv_fc1(x))
         val = F.relu(self.val_fc1(x))
         adv = self.adv_out(adv)
         val = self.val_out(val).expand(x.size(0), self.action_size)
 
+        # combing result of adv and val stream
         x = val + adv - adv.mean(1).unsqueeze(1).expand(x.size(0), self.action_size)
 
         return x

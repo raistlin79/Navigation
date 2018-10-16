@@ -14,8 +14,7 @@ GAMMA = 0.99             # discount factor
 TAU = 1e-3               # for soft update of target parameters
 LR = 5e-4                # learning rate
 UPDATE_EVERY = 4         # how often to update the network
-
-SEED = 0
+SEED = 0                 # Providing seed for Qnetworks and ReplayBuffer
 
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
@@ -73,10 +72,8 @@ class Agent():
 
         # Epsilon-greedy action selection
         if random.random() > eps:
-            #print("Calc action: ", np.asscalar(np.argmax(action_values.cpu().data.numpy())))
             return np.asscalar(np.argmax(action_values.cpu().data.numpy()))
         else:
-            #print("Random action: ", random.choice(np.arange(self.action_size)))
             return random.choice(np.arange(self.action_size))
 
     def learn(self, experiences, gamma):

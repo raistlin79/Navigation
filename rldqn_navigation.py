@@ -1,34 +1,25 @@
 from unityagents import UnityEnvironment
 from my_dqn_agent import Agent
-import numpy as np
 import random
 import torch
+import numpy as np
 
 from collections import deque
 import matplotlib.pyplot as plt
+%matplotlib inline
 
 device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+print("Device: ", device)
+
 env = UnityEnvironment(file_name="Banana_Windows_x86_64/Banana.exe")
 
-"""
-Environments contain brains which are responsible for deciding the actions of their associated agents. Here we check for the first brain available, and set it as the default brain we will be controlling from Python.
-"""
+# Environments contain brains which are responsible for deciding the actions
+# of their associated agents. Here we check for the first brain available,
+# and set it as the default brain we will be controlling from Python
+
 # get the default brain
 brain_name = env.brain_names[0]
 brain = env.brains[brain_name]
-
-"""
-The simulation contains a single agent that navigates a large environment. At each time step, it has four actions at its disposal:
-
-0 - walk forward
-1 - walk backward
-2 - turn left
-3 - turn right
-The state space has 37 dimensions and contains the agent's velocity, along with ray-based perception of objects around agent's forward direction.
-A reward of +1 is provided for collecting a yellow banana, and a reward of -1 is provided for collecting a blue banana.
-
-Run the code cell below to print some information about the environment.
-"""
 
 # reset the environment
 env_info = env.reset(train_mode=False)[brain_name]
@@ -46,26 +37,8 @@ print('States look like:', state)
 state_size = len(state)
 print('States have length:', state_size)
 
-score = 0
-agent = Agent(state_size, action_size, seed=0, fc1_units=128, fc2_units=64)
-
-#-------------------------------------------------------------------------------
-# watch an untrained agent for testing purposes
-env_info = env.reset(train_mode=False)[brain_name]
-score = 0                                          # initialize the score
-while True:
-    action = agent.act(state)                      # select an action
-    env_info = env.step(action)[brain_name]        # send the action to the environment
-    next_state = env_info.vector_observations[0]   # get the next state
-    reward = env_info.rewards[0]                   # get the reward
-    done = env_info.local_done[0]                  # see if episode has finished
-    score += reward                                # update the score
-    state = next_state                             # roll over the state to next time step
-    if done:                                       # exit loop if episode finished
-        break
-
-print("Score: {}".format(score))
-env.close()
+# initialize agent
+agent = Agent(state_size, action_size)
 
 #-------------------------------------------------------------------------------
 
@@ -104,8 +77,8 @@ def dqn(n_episodes=2000, max_t=1000, eps_start=1.0, eps_end=0.01, eps_decay=0.99
         print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, np.mean(scores_window)), end="")
         if i_episode % 100 == 0:
             print('\rEpisode {}\tAverage Score: {:.2f}'.format(i_episode, np.mean(scores_window)))
-        if np.mean(scores_window)>=15.0:
-            print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode-100, np.mean(scores_window)))
+        if np.mean(scores_window)>=15.0:  # An average of 15 can be obtained only going 200 episodes more
+            print('\nEnvironment solved in {:d} episodes!\tAverage Score: {:.2f}'.format(i_episode, np.mean(scores_window)))
             torch.save(agent.qnetwork_local.state_dict(), 'checkpoint.pth')
             break
     return scores
