@@ -1,5 +1,9 @@
 ## Navigation
-#DRLND: Deep Reinforcement Learning Project
+# DRLND: Deep Reinforcement Learning Project
+
+In this project, an agent is trained to navigate (and collect bananas!) in a large, square world. 
+
+![Environment GIF.](banana.gif)
 
 The simulation contains a single agent that navigates a large environment. At each time step, it has four actions at its disposal:
 
